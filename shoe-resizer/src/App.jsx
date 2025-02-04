@@ -6,7 +6,7 @@ import './App.css';
 function App() {
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [processedImages, setProcessedImages] = useState([]);
-  const [isLoading, setIsLoading] = useState(false); // state to track upload loading
+  const [isLoading, setIsLoading] = useState(false);
   const fileInputRef = useRef(null);
 
   const handleFileChange = (e) => {
@@ -20,17 +20,23 @@ function App() {
     }
   };
 
-  // Helper function: delay for a given time (in ms)
+  // Helper function to delay execution
   const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-  // Revised uploadImages: split selected files into batches
+  // Revised uploadImages: process in batches, update UI after each batch
   const uploadImages = async () => {
     if (!selectedFiles.length) return;
 
     setIsLoading(true);
+    // Convert FileList to Array
     const filesArray = Array.from(selectedFiles);
-    const batchSize = 2; // Adjust batch size as needed
-    const allResults = [];
+    // Increase batch size to 4 for faster throughput; adjust as needed
+    const batchSize = 4;
+    // Reduce delay between batches to 200ms; adjust as needed
+    const delayMs = 200;
+
+    // Clear any previous processed images
+    setProcessedImages([]);
 
     for (let i = 0; i < filesArray.length; i += batchSize) {
       const batch = filesArray.slice(i, i + batchSize);
@@ -45,24 +51,22 @@ function App() {
           body: formData,
         });
 
-        // Check if response is OK before parsing
         if (!response.ok) {
           console.error(`Batch starting at file ${i} failed with status:`, response.status);
           continue;
         }
 
         const data = await response.json();
-        // Append results from this batch to overall results
-        allResults.push(...data);
+        // Append new results to the already processed images, updating UI progressively
+        setProcessedImages((prev) => [...prev, ...data]);
       } catch (error) {
         console.error("Error uploading batch:", error);
       }
 
-      // Optionally add a short delay between batches
-      await delay(500); // 500ms delay; adjust as needed
+      // Short delay before processing the next batch
+      await delay(delayMs);
     }
 
-    setProcessedImages(allResults);
     setIsLoading(false);
   };
 
@@ -94,12 +98,11 @@ function App() {
     <div className="App">
       <h1 className="text-5xl font-bold">Shoe Image Resizer</h1>
       <br />
-      <h1 className="text-2xl">Supported File Types: </h1>
+      <h1 className="text-2xl">Supported File Types:</h1>
       <p>JPG / JPEG, PNG, JFIF, WebP & Transparent Backgrounds</p>
       <br />
 
       <div className="button-group">
-        {/* Group file input and upload/loading button */}
         <div className="group-left">
           <input
             type="file"
@@ -108,8 +111,6 @@ function App() {
             className="file-input"
             onChange={handleFileChange}
           />
-
-          {/* Upload Button */}
           {!isLoading && (
             <button onClick={uploadImages} className="btn btn-soft btn-primary">
               Upload and Process
@@ -122,8 +123,6 @@ function App() {
             </button>
           )}
         </div>
-
-        {/* Group download button separately */}
         <div className="group-right">
           <button 
             onClick={downloadAll} 
@@ -137,7 +136,6 @@ function App() {
 
       <div className="divider"></div>
 
-      {/* Image preview area */}
       <div className="results-grid">
         {processedImages.map((img, idx) => (
           <div key={idx} className="result-item">
