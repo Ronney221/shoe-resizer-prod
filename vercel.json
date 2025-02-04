@@ -1,0 +1,12 @@
+{
+    "version": 2,
+    "builds": [
+      { "src": "app.py", "use": "@vercel/python" },
+      { "src": "shoe-resizer/package.json", "use": "@vercel/static-build", "config": { "distDir": "dist" } }
+    ],
+    "routes": [
+      { "src": "/process", "dest": "app.py" },
+      { "src": "/(.*)", "dest": "/shoe-resizer/$1" }
+    ]
+  }
+  
